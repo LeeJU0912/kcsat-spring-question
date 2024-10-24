@@ -1,0 +1,14 @@
+spring:
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: HPCLab
+    producer:
+      batch-size: 1
+    properties:
+      session.timeout.ms: 600000
+
+logging:
+  level:
+    org.apache.kafka.clients.admin: ERROR
+    org.apache.kafka.clients.consumer: ERROR
