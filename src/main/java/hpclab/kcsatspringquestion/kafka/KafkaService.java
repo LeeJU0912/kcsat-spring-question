@@ -41,15 +41,21 @@ public class KafkaService {
     public Long makeQuestionFromKafka(QuestionSubmitKafkaForm form, HttpSession httpSession) throws InterruptedException, JsonProcessingException, ExecutionException {
         String stringForm = objectMapper.writeValueAsString(form);
 
+        questionConsumer.setEraseCount(httpSession);
+
         // 메시지 전송
         return questionProducers.sendMessage(stringForm, httpSession);
     }
 
 
     // UUID를 사용한 비즈니스 로직 처리
-    public QuestionResponseRawForm receiveQuestionFromKafka(HttpSession httpSession) throws InterruptedException {
+    public QuestionResponseRawForm receiveQuestionFromKafka(HttpSession httpSession) {
         // 메시지가 들어올 때까지 대기
-        ConsumerRecord<String, String> message = questionConsumer.getMessageFromQueue(httpSession);
+        ConsumerRecord<String, String> message = questionConsumer.checkQueueSizeFromQueue(httpSession);
+        if (message == null) {
+            return null;
+        }
+
         String messageValue = message.value();
 
         try {
@@ -66,6 +72,7 @@ public class KafkaService {
         // 작성된 양식 데이터를 API Json 송신 데이터로 제작
         Map<String, Object> data = new LinkedHashMap<>();
         String explanationDefinition = questionMemoryRepository.getExplanationDefinition(form.getQuestionType());
+        data.put("type", form.getQuestionType().toString());
         data.put("definition", explanationDefinition);
         data.put("title", form.getTitle());
         data.put("mainText", form.getMainText());
@@ -74,15 +81,21 @@ public class KafkaService {
 
         log.info("SEND EX : {}", form);
 
+        explanationConsumer.setEraseCount(httpSession);
+
         // 메시지 전송
         return explanationProducers.sendMessage(objectMapper.writeValueAsString(data), httpSession);
     }
 
 
     // UUID를 사용한 비즈니스 로직 처리
-    public ExplanationResponseRawForm receiveExplanationFromKafka(HttpSession httpSession) throws InterruptedException {
+    public ExplanationResponseRawForm receiveExplanationFromKafka(HttpSession httpSession) {
         // 메시지가 들어올 때까지 대기
-        ConsumerRecord<String, String> message = explanationConsumer.getMessageFromQueue(httpSession);
+        ConsumerRecord<String, String> message = explanationConsumer.checkQueueSizeFromQueue(httpSession);
+        if (message == null) {
+            return null;
+        }
+
         String messageValue = message.value();
 
         try {
@@ -103,19 +116,13 @@ public class KafkaService {
 
         log.info("now Question offset : {}", offset);
 
-        String bootstrapServers = "kafka:9092";
         String groupId = "HPCLab";
         String topic = httpSession.getAttribute("questionTopic").toString();
         int partition = 0;
 
-        KafkaOffsetChecker checker = new KafkaOffsetChecker(bootstrapServers);
+        KafkaOffsetChecker checker = new KafkaOffsetChecker();
 
-        long committedOffset = checker.getCommittedOffset(groupId, topic, partition);
-
-        checker.close();
-
-
-        return committedOffset;
+        return checker.getCommittedOffset(groupId, topic, partition);
     }
 
 
@@ -128,18 +135,12 @@ public class KafkaService {
 
         log.info("now Explanation offset : {}", offset);
 
-        String bootstrapServers = "kafka:9092";
         String groupId = "HPCLab";
         String topic = httpSession.getAttribute("explanationTopic").toString();
         int partition = 0;
 
-        KafkaOffsetChecker checker = new KafkaOffsetChecker(bootstrapServers);
+        KafkaOffsetChecker checker = new KafkaOffsetChecker();
 
-        long committedOffset = checker.getCommittedOffset(groupId, topic, partition);
-
-        checker.close();
-
-
-        return committedOffset;
+        return checker.getCommittedOffset(groupId, topic, partition);
     }
 }

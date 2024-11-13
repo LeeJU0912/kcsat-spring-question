@@ -6,7 +6,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.stereotype.Repository;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -18,6 +17,10 @@ import java.util.TreeMap;
 @Getter
 @Repository
 public class QuestionMemoryRepository {
+
+    private static final String QUESTION_SOURCE = "static/dataset/K-SAT_questionDefinition.json";
+    private static final String EXPLANATION_SOURCE = "static/dataset/K-SAT_explanationDefinition.json";
+    private static final String DATASET_SOURCE = "static/dataset/K-SAT_dataset.json";
 
     private final List<String> defaultDatasets;
     private final TreeMap<QuestionType, String> questionDefinitions;
@@ -44,7 +47,7 @@ public class QuestionMemoryRepository {
     @SuppressWarnings("unchecked")
     private TreeMap<QuestionType, String> makeQuestionDefinitions() throws Exception {
 
-        JSONObject object = getData("static/dataset/K-SAT_questionDefinition.json");
+        JSONObject object = getData(QUESTION_SOURCE);
 
         QuestionType[] values = QuestionType.values();
         ArrayList<String> definition = (ArrayList<String>) object.get("definition");
@@ -62,7 +65,7 @@ public class QuestionMemoryRepository {
     @SuppressWarnings("unchecked")
     private TreeMap<QuestionType, String> makeExplanationDefinitions() throws Exception {
 
-        JSONObject object = getData("static/dataset/K-SAT_explanationDefinition.json");
+        JSONObject object = getData(EXPLANATION_SOURCE);
 
         QuestionType[] values = QuestionType.values();
         ArrayList<String> definition = (ArrayList<String>) object.get("definition");
@@ -78,7 +81,7 @@ public class QuestionMemoryRepository {
 
 
     private List<String> makeDatasets() throws Exception {
-        JSONObject object = getData("static/dataset/K-SAT_dataset.json");
+        JSONObject object = getData(DATASET_SOURCE);
         return (ArrayList<String>) object.get("dataset");
     }
 

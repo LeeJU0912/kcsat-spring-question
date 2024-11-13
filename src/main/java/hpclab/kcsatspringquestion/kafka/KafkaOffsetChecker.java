@@ -4,19 +4,18 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 public class KafkaOffsetChecker {
 
-    private final AdminClient adminClient;
+    private static final AdminClient adminClient;
 
-    public KafkaOffsetChecker(String bootstrapServers) {
+    static {
         Properties config = new Properties();
-        config.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        this.adminClient = AdminClient.create(config);
+        config.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
+        adminClient = AdminClient.create(config);
     }
 
     // 특정 소비자 그룹의 오프셋 조회 메서드
@@ -42,10 +41,5 @@ public class KafkaOffsetChecker {
         } catch (ExecutionException | InterruptedException e) {
             throw new RuntimeException("Error while fetching offsets", e);
         }
-    }
-
-    // AdminClient 종료 메서드
-    public void close() {
-        adminClient.close();
     }
 }

@@ -37,9 +37,11 @@ public class ExplanationProducers {
         produceIdx = produceIdx ^ 1;
 
         if (produceIdx == 0) {
-            return "ExplanationRequest1";
-        } else {
             return "ExplanationRequest2";
+        } else if (produceIdx == 1) {
+            return "ExplanationRequest2";
+        } else {
+            throw new IllegalArgumentException("Invalid explanation topic");
         }
     }
 }

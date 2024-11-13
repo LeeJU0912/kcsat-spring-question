@@ -8,6 +8,7 @@ import hpclab.kcsatspringquestion.questionGenerator.service.QuestionService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,27 +58,33 @@ public class QuestionController {
         long recentSentQuestionOffset = (long) httpSession.getAttribute("questionOffset");
         long recentConsumedQuestionOffset = kafkaService.getRecentConsumedQuestionOffset(httpSession);
 
-        log.info("Session ID: {}", httpSession.getId());
-        log.info("recentSentQuestionOffset: {}", recentSentQuestionOffset);
-        log.info("recentConsumedQuestionOffset: {}", recentConsumedQuestionOffset);
+        long calculatedOffset = recentSentQuestionOffset - recentConsumedQuestionOffset + 1;
 
-        return ResponseEntity.ok(recentSentQuestionOffset - recentConsumedQuestionOffset + 1);
+        log.info("Session ID: {}", httpSession.getId());
+        log.info("Calculated Offset: {}", calculatedOffset);
+
+        return ResponseEntity.ok(calculatedOffset);
     }
 
 
     // 현재 offset 찾기
     @GetMapping("/api/question/explanationOffsetGap")
     public ResponseEntity<Long> getExplanationOffset(HttpSession httpSession) {
-        long recentSentQuestionOffset = (long) httpSession.getAttribute("explanationOffset");
+        long recentSentExplanationOffset = (long) httpSession.getAttribute("explanationOffset");
         long recentConsumedExplanationOffset = kafkaService.getRecentConsumedExplanationOffset(httpSession);
 
-        return ResponseEntity.ok(recentSentQuestionOffset - recentConsumedExplanationOffset + 1);
+        long calculatedOffset = recentSentExplanationOffset - recentConsumedExplanationOffset + 1;
+
+        log.info("Session ID: {}", httpSession.getId());
+        log.info("Calculated Offset: {}", calculatedOffset);
+
+        return ResponseEntity.ok(calculatedOffset);
     }
 
 
     // DEMO 문제 생성
     @PostMapping("/api/question/createQuestionAllRandom/LLaMA")
-    public ResponseEntity<QuestionResponseRawForm> createDemoQuestion(HttpSession httpSession) throws InterruptedException, JsonProcessingException, ExecutionException {
+    public ResponseEntity<QuestionType> createDemoQuestion(HttpSession httpSession) throws InterruptedException, JsonProcessingException, ExecutionException {
         log.info("Session ID: {}", httpSession.getId());
 
         QuestionType questionType = QuestionType.getRandomQuestionType();
@@ -85,57 +92,60 @@ public class QuestionController {
         String definition = questionService.getQuestionDefinition(questionType);
         String mainText = questionService.getRandomDefaultDataset();
 
-        Long offset = kafkaService.makeQuestionFromKafka(new QuestionSubmitKafkaForm(definition, mainText), httpSession);
+        Long offset = kafkaService.makeQuestionFromKafka(new QuestionSubmitKafkaForm(questionType.toString(), definition, mainText), httpSession);
         httpSession.setAttribute("questionOffset", offset);
 
-        log.info("now Offset from send message : {}", offset);
+        log.info("now Offset from sent message : {}", offset);
 
-        QuestionResponseRawForm response = kafkaService.receiveQuestionFromKafka(httpSession);
-        response.setQuestionType(questionType);
-
-        log.info("DEMO 문제 Type : {} 생성 완료.", response.getQuestionType());
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(questionType);
     }
 
 
     // 무작위 문제 생성
     @PostMapping("/api/question/createRandom/LLaMA")
-    public ResponseEntity<QuestionResponseRawForm> createDefaultQuestion(HttpSession httpSession, @RequestBody QuestionSubmitRawForm form) throws InterruptedException, JsonProcessingException, ExecutionException {
+    public ResponseEntity<QuestionType> createDefaultQuestion(HttpSession httpSession, @RequestBody QuestionSubmitRawForm form) throws InterruptedException, JsonProcessingException, ExecutionException {
 
         QuestionType questionType = QuestionType.valueOf(form.getType());
 
         String definition = questionService.getQuestionDefinition(questionType);
         String mainText = questionService.getRandomDefaultDataset();
 
-        Long offset = kafkaService.makeQuestionFromKafka(new QuestionSubmitKafkaForm(definition, mainText), httpSession);
+        Long offset = kafkaService.makeQuestionFromKafka(new QuestionSubmitKafkaForm(questionType.toString(), definition, mainText), httpSession);
         httpSession.setAttribute("questionOffset", offset);
 
-        QuestionResponseRawForm response = kafkaService.receiveQuestionFromKafka(httpSession);
-        response.setQuestionType(questionType);
+        log.info("now Offset from sent message : {}", offset);
 
-        log.info("기출 문제 Type : {} 생성 완료.", response.getQuestionType());
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(questionType);
     }
 
 
     // 사용자 정의 지문 문제 생성
     @PostMapping("/api/question/create/LLaMA")
-    public ResponseEntity<QuestionResponseRawForm> createCustomQuestion(HttpSession httpSession, @RequestBody QuestionSubmitRawForm form) throws InterruptedException, JsonProcessingException, ExecutionException {
+    public ResponseEntity<QuestionType> createCustomQuestion(HttpSession httpSession, @RequestBody QuestionSubmitRawForm form) throws InterruptedException, JsonProcessingException, ExecutionException {
 
         QuestionType questionType = QuestionType.valueOf(form.getType());
 
         String definition = questionService.getQuestionDefinition(questionType);
         String mainText = form.getMainText();
 
-        Long offset = kafkaService.makeQuestionFromKafka(new QuestionSubmitKafkaForm(definition, mainText), httpSession);
+        Long offset = kafkaService.makeQuestionFromKafka(new QuestionSubmitKafkaForm(questionType.toString(), definition, mainText), httpSession);
         httpSession.setAttribute("questionOffset", offset);
 
-        QuestionResponseRawForm response = kafkaService.receiveQuestionFromKafka(httpSession);
-        response.setQuestionType(questionType);
+        log.info("now Offset from sent message : {}", offset);
 
-        log.info("외부 지문 문제 Type : {} 생성 완료.", questionType);
+        return ResponseEntity.ok(questionType);
+    }
+
+
+    @PostMapping("/api/question/create")
+    public ResponseEntity<?> getQuestion(HttpSession httpSession, @RequestBody QuestionType questionType) {
+
+        QuestionResponseRawForm response = kafkaService.receiveQuestionFromKafka(httpSession);
+        if (response == null) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("아직 문제가 만들어지지 않았습니다.");
+        }
+
+        response.setQuestionType(questionType);
 
         return ResponseEntity.ok(response);
     }
@@ -143,22 +153,35 @@ public class QuestionController {
 
     // 해설 생성
     @PostMapping("/api/question/explanation/LLaMA")
-    public ResponseEntity<QuestionDto> createExplanation(HttpSession httpSession, @RequestBody QuestionResponseRawForm form) throws ExecutionException, InterruptedException, JsonProcessingException {
+    public ResponseEntity<String> createExplanation(HttpSession httpSession, @RequestBody QuestionResponseRawForm form) throws ExecutionException, InterruptedException, JsonProcessingException {
 
         Long offset = kafkaService.makeExplanationFromKafka(form, httpSession);
         httpSession.setAttribute("explanationOffset", offset);
 
+        return ResponseEntity.ok("해설 생성 요청 전송 완료");
+    }
+
+    @PostMapping("/api/question/explanation/create")
+    public ResponseEntity<?> getExplanation(HttpSession httpSession, @RequestBody QuestionResponseRawForm form) {
+
         ExplanationResponseRawForm explanation = kafkaService.receiveExplanationFromKafka(httpSession);
+        if (explanation == null) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("아직 해설이 만들어지지 않았습니다.");
+        }
+
+        log.info(explanation.toString());
 
         QuestionDto question = QuestionDto.builder()
                 .title(form.getTitle())
                 .questionType(form.getQuestionType())
                 .mainText(form.getMainText())
                 .choices(form.getChoices().stream().toList())
-                .answer(form.getAnswer())
+                .answer(explanation.getAnswer())
                 .translation(explanation.getTranslation())
                 .explanation(explanation.getExplanation())
                 .build();
+
+        log.info(question.toString());
 
         log.info("해설 Type : {} 생성 완료.", form.getQuestionType());
 
