@@ -6,7 +6,7 @@
 
 ## 기술 이용
 1. Kafka의 Offset 메타데이터를 활용하여 실시간 대기열 확인 기능을 구현.
-2. 생성에 여러 개의 Topic을 사용하여 GPU 병렬 처리 진행 (파티션 단위로 하려고 했으나, DefaultPartitioner인 Sticky에서 RoundRobin으로 알고리즘을 바꾸어도 완전한 RoundRobin 처리를 하지 않는 문제점이 존재하였음.)
+2. 생성에 여러 개의 Topic을 사용하여 GPU 병렬 처리 진행 (파티션 단위로 하려고 했으나, DefaultPartitioner인 Sticky에서 RoundRobin으로 알고리즘을 바꾸어도 완전한 RoundRobin 처리를 하지 않는 문제점이 존재하였음. 추후 해결해야할 부분)
 3. Spring Kafka Consumer는 Map\<UUID, Queue\<Message\>\> 형태로 만들어진 문제들에 대해 Session UUID로 분류하여 저장. Session이 삭제될 때, Map UUID의 모든 자료를 삭제하는 것으로 메모리 누수 방지.
 4. 사용자가 결과를 받지 않고 여러 번 생성 요청을 하면, Queue의 나머지 메시지를 다 버리고 가장 마지막 요청 하나만을 수용함.
 
