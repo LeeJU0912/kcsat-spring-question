@@ -18,6 +18,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 @RequiredArgsConstructor
 public class ExplanationConsumer {
 
+    private static final String EXPLANATION_RESPONSE_TOPIC = "ExplanationResponse";
     private final Logger logger = LoggerFactory.getLogger(KafkaConsumer.class);
 
     private final Map<String, Integer> eraseCount = new ConcurrentHashMap<>();
@@ -25,7 +26,7 @@ public class ExplanationConsumer {
     // BlockingQueue를 사용하여 메시지를 저장
     private final Map<String, BlockingQueue<ConsumerRecord<String, String>>> messageQueue = new ConcurrentHashMap<>();
 
-    @KafkaListener(topics = "ExplanationResponse")
+    @KafkaListener(topics = EXPLANATION_RESPONSE_TOPIC)
     public void listen(ConsumerRecord<String, String> record) throws InterruptedException {
         logger.info("Received Consumer Record : {}", record);
 
@@ -56,6 +57,10 @@ public class ExplanationConsumer {
         BlockingQueue<ConsumerRecord<String, String>> nowQueue = messageQueue.get(uuid);
 
 
+        return getFreshMessage(nowQueue, uuid);
+    }
+
+    private ConsumerRecord<String, String> getFreshMessage(BlockingQueue<ConsumerRecord<String, String>> nowQueue, String uuid) {
         if (nowQueue.size() == eraseCount.get(uuid)) {
             while(eraseCount.get(uuid) > 1) {
                 nowQueue.poll();

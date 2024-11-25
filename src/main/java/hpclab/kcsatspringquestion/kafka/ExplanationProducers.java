@@ -16,6 +16,9 @@ import java.util.concurrent.ExecutionException;
 @RequiredArgsConstructor
 public class ExplanationProducers {
 
+    private static final Integer EXPLANATION_SERVER_SIZE = 1;
+    private static final String EXPLANATION_REQUEST_TOPIC_1 = "ExplanationRequest2";
+
     private final Logger logger = LoggerFactory.getLogger(KafkaProducer.class);
     private final KafkaTemplate<String, String> kafkaTemplate;
     private int produceIdx = 1;
@@ -25,7 +28,6 @@ public class ExplanationProducers {
         String uuid = httpSession.getId();
         String topic = httpSession.getAttribute("explanationTopic").toString();
 
-
         logger.info("sending message to topic: {}, keys: {}", topic, uuid);
         CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(topic, uuid, message);
 
@@ -34,12 +36,12 @@ public class ExplanationProducers {
 
     public String getExplanationTopic() {
         //RoundRobin
-        produceIdx = produceIdx ^ 1;
+        produceIdx = (produceIdx + 1) % EXPLANATION_SERVER_SIZE;
 
         if (produceIdx == 0) {
-            return "ExplanationRequest2";
+            return EXPLANATION_REQUEST_TOPIC_1;
         } else if (produceIdx == 1) {
-            return "ExplanationRequest2";
+            return EXPLANATION_REQUEST_TOPIC_1;
         } else {
             throw new IllegalArgumentException("Invalid explanation topic");
         }

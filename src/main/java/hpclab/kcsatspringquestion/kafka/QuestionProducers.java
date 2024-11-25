@@ -15,6 +15,9 @@ import java.util.concurrent.ExecutionException;
 @RequiredArgsConstructor
 public class QuestionProducers {
 
+    private static final Integer QUESTION_SERVER_SIZE = 1;
+    private static final String QUESTION_REQUEST_TOPIC_1 = "QuestionRequest2";
+
     private final Logger logger = LoggerFactory.getLogger(KafkaProducer.class);
     private final KafkaTemplate<String, String> kafkaTemplate;
     private int produceIdx = 1;
@@ -31,12 +34,12 @@ public class QuestionProducers {
 
     public String getQuestionTopic() {
         //RoundRobin
-        produceIdx = produceIdx ^ 1;
+        produceIdx = (produceIdx + 1) % QUESTION_SERVER_SIZE;
 
         if (produceIdx == 0) {
-            return "QuestionRequest1";
+            return QUESTION_REQUEST_TOPIC_1;
         } else if (produceIdx == 1) {
-            return "QuestionRequest1";
+            return QUESTION_REQUEST_TOPIC_1;
         } else {
             throw new IllegalArgumentException("Invalid question topic");
         }
