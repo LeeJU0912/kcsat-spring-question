@@ -4,6 +4,10 @@ import lombok.Getter;
 
 import java.util.Random;
 
+/**
+ * 문제 유형을 정리해 놓은 열거형 클래스입니다.
+ * 총 15가지 유형을 서비스하고 있습니다.
+ */
 @Getter
 public enum QuestionType {
 
@@ -26,12 +30,18 @@ public enum QuestionType {
     ARGUMENT("필자가 주장하는 바");
 
     private final String krName;
-    private static final Random RANDOM = new Random();
-
     QuestionType(String krName) {
         this.krName = krName;
     }
 
+    private static final Random RANDOM = new Random();
+
+    /**
+     * 문제 유형을 무작위로 추출하는 메서드입니다.
+     * 무작위 문제 제작에 사용됩니다.
+     *
+     * @return 랜덤하게 뽑힌 QuestionType
+     */
     public static QuestionType getRandomQuestionType() {
         return QuestionType.values()[RANDOM.nextInt(QuestionType.values().length)];
     }
