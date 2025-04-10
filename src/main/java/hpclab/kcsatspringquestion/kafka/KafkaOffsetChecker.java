@@ -3,13 +3,10 @@ package hpclab.kcsatspringquestion.kafka;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
 /**
