@@ -1,6 +1,6 @@
 spring:
   kafka:
-    bootstrap-servers: kafka:9092
+    bootstrap-servers: ${KAFKA_URL}:9092
     consumer:
       group-id: HPCLab
     producer:
