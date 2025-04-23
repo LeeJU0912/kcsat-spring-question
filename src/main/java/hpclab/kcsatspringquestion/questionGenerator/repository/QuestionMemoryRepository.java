@@ -26,6 +26,9 @@ public class QuestionMemoryRepository {
     private static final String EXPLANATION_SOURCE = "static/dataset/K-SAT_explanationDefinition.json";
     private static final String DATASET_SOURCE = "static/dataset/K-SAT_dataset.json";
 
+    private static final String DATASET = "dataset";
+    private static final String DEFINITION = "definition";
+
     private final List<String> defaultDatasets;
     private final TreeMap<QuestionType, String> questionDefinitions;
     private final TreeMap<QuestionType, String> explanationDefinitions;
@@ -74,7 +77,7 @@ public class QuestionMemoryRepository {
         JSONObject object = getData(QUESTION_SOURCE);
 
         QuestionType[] values = QuestionType.values();
-        ArrayList<String> definition = (ArrayList<String>) object.get("definition");
+        ArrayList<String> definition = (ArrayList<String>) object.get(DEFINITION);
 
         TreeMap<QuestionType, String> definitions = new TreeMap<>();
 
@@ -97,7 +100,7 @@ public class QuestionMemoryRepository {
         JSONObject object = getData(EXPLANATION_SOURCE);
 
         QuestionType[] values = QuestionType.values();
-        ArrayList<String> definition = (ArrayList<String>) object.get("definition");
+        ArrayList<String> definition = (ArrayList<String>) object.get(DEFINITION);
 
         TreeMap<QuestionType, String> definitions = new TreeMap<>();
 
@@ -116,7 +119,7 @@ public class QuestionMemoryRepository {
      */
     private List<String> makeDatasets() throws Exception {
         JSONObject object = getData(DATASET_SOURCE);
-        return (ArrayList<String>) object.get("dataset");
+        return (ArrayList<String>) object.get(DATASET);
     }
 
     /**
