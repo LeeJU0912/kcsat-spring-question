@@ -19,8 +19,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import java.util.concurrent.ExecutionException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Kafka를 이용한 로직 구현을 담당하는 클래스입니다.
