@@ -17,10 +17,10 @@ import java.util.Random;
 public class QuestionServiceImpl implements QuestionService {
 
     private final QuestionMemoryRepository questionMemoryRepository;
+    private static final Random random = new Random();
 
     @Override
     public String getRandomDefaultDataset() {
-        Random random = new Random();
         return questionMemoryRepository.getDefaultDatasets().get(random.nextInt(questionMemoryRepository.getDefaultDatasets().size()));
     }
 
