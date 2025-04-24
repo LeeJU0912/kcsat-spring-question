@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 문제 제작 관련 로직을 구현한 클래스입니다.
@@ -17,11 +18,10 @@ import java.util.Random;
 public class QuestionServiceImpl implements QuestionService {
 
     private final QuestionMemoryRepository questionMemoryRepository;
-    private static final Random random = new Random();
 
     @Override
     public String getRandomDefaultDataset() {
-        return questionMemoryRepository.getDefaultDatasets().get(random.nextInt(questionMemoryRepository.getDefaultDatasets().size()));
+        return questionMemoryRepository.getDefaultDatasets().get(ThreadLocalRandom.current().nextInt(questionMemoryRepository.getDefaultDatasets().size()));
     }
 
     @Override
