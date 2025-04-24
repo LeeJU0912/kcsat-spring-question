@@ -112,7 +112,7 @@ public class QuestionController {
      * @param httpSession 회원 HTTP 세션
      * @return 제작될 문제 유형을 반환합니다.
      */
-    @PostMapping("/api/question/createQuestionAllRandom/LLaMA")
+    @PostMapping("/api/question/allRandom")
     public ResponseEntity<ApiResponse<QuestionType>> createDemoQuestion(HttpSession httpSession) {
         log.info("Session ID: {}", httpSession.getId());
 
@@ -135,7 +135,7 @@ public class QuestionController {
      * @param form 이 메서드에서는 사용자가 지정한 문제 유형만을 참고합니다.
      * @return 제작될 문제 유형을 반환합니다.
      */
-    @PostMapping("/api/question/createRandom/LLaMA")
+    @PostMapping("/api/question/random")
     public ResponseEntity<ApiResponse<QuestionType>> createDefaultQuestion(HttpSession httpSession, @RequestBody QuestionSubmitRawForm form) {
 
         QuestionType questionType = QuestionType.valueOf(form.getType());
@@ -158,7 +158,7 @@ public class QuestionController {
      * @param form 이 메서드에서는 사용자가 작성한 본문, 지정한 문제 유형 데이터를 모두 참고합니다.
      * @return 제작될 문제 유형을 반환합니다.
      */
-    @PostMapping("/api/question/create/LLaMA")
+    @PostMapping("/api/question")
     public ResponseEntity<ApiResponse<QuestionType>> createCustomQuestion(HttpSession httpSession, @RequestBody QuestionSubmitRawForm form) {
 
         QuestionType questionType = QuestionType.valueOf(form.getType());
@@ -181,7 +181,7 @@ public class QuestionController {
      * @param questionType 제작 요청한 문제 유형. 만들어진 문제 객체에 추가합니다.
      * @return 문제가 다 만들어졌다면 문제 정보를 반환합니다. 다 만들어지지 않았다면 NO_CONTENT를 반환합니다.
      */
-    @PostMapping("/api/question/create")
+    @GetMapping("/api/question")
     public ResponseEntity<ApiResponse<QuestionResponseRawForm>> getQuestion(HttpSession httpSession, @RequestBody QuestionType questionType) {
 
         QuestionResponseRawForm response = kafkaService.receiveQuestionFromKafka(httpSession);
@@ -200,7 +200,7 @@ public class QuestionController {
      * @return 해설 생성에 성공한다면 OK를 반환합니다.
      */
     // 해설 생성
-    @PostMapping("/api/question/explanation/LLaMA")
+    @PostMapping("/api/explanation")
     public ResponseEntity<ApiResponse<Void>> createExplanation(HttpSession httpSession, @RequestBody QuestionResponseRawForm form) {
 
         Long offset = kafkaService.makeExplanationFromKafka(form, httpSession);
@@ -216,7 +216,7 @@ public class QuestionController {
      * @param form 제작 완료된 문제 정보. 만들어진 해설 객체와 결합합니다.
      * @return 해설이 다 만들어졌다면 해설 정보를 반환합니다. 다 만들어지지 않았다면 NO_CONTENT를 반환합니다.
      */
-    @PostMapping("/api/question/explanation/create")
+    @GetMapping("/api/explanation")
     public ResponseEntity<ApiResponse<QuestionDto>> getExplanation(HttpSession httpSession, @RequestBody QuestionResponseRawForm form) {
 
         ExplanationResponseRawForm explanation = kafkaService.receiveExplanationFromKafka(httpSession);
