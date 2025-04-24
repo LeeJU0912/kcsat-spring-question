@@ -1,5 +1,7 @@
 package hpclab.kcsatspringquestion.questionGenerator.controller;
 
+import hpclab.kcsatspringquestion.exception.ApiResponse;
+import hpclab.kcsatspringquestion.exception.SuccessCode;
 import hpclab.kcsatspringquestion.questionGenerator.domain.QuestionType;
 import hpclab.kcsatspringquestion.kafka.KafkaService;
 import hpclab.kcsatspringquestion.questionGenerator.dto.*;
@@ -30,7 +32,7 @@ public class QuestionController {
      * @return 세션 UUID 값을 반환합니다.
      */
     @GetMapping("/api/question/firstQuestionContact")
-    public ResponseEntity<String> createQuestionData(HttpSession httpSession) {
+    public ResponseEntity<ApiResponse<String>> createQuestionData(HttpSession httpSession) {
         log.info("First get Session ID: {}", httpSession.getId());
 
         // topic 설정
@@ -39,7 +41,7 @@ public class QuestionController {
         // session에 topic 저장
         httpSession.setAttribute("questionTopic", questionTopic);
 
-        return ResponseEntity.ok(httpSession.getId());
+        return ResponseEntity.ok(new ApiResponse<>(true, httpSession.getId(), null, null));
     }
 
     /**
@@ -50,7 +52,7 @@ public class QuestionController {
      * @return 세션 UUID 값을 반환합니다.
      */
     @GetMapping("/api/question/firstExplanationContact")
-    public ResponseEntity<String> createExplanationData(HttpSession httpSession) {
+    public ResponseEntity<ApiResponse<String>> createExplanationData(HttpSession httpSession) {
         log.info("First get Session ID: {}", httpSession.getId());
 
         // topic 설정
@@ -59,7 +61,7 @@ public class QuestionController {
         // session에 topic 저장
         httpSession.setAttribute("explanationTopic", explanationTopic);
 
-        return ResponseEntity.ok(httpSession.getId());
+        return ResponseEntity.ok(new ApiResponse<>(true, httpSession.getId(), null, null));
     }
 
     /**
@@ -70,7 +72,7 @@ public class QuestionController {
      * @return 회원이 문제를 받기까지 남은 메시지 수를 반환합니다.
      */
     @GetMapping("/api/question/questionOffsetGap")
-    public ResponseEntity<Long> getQuestionOffset(HttpSession httpSession) {
+    public ResponseEntity<ApiResponse<Long>> getQuestionOffset(HttpSession httpSession) {
         long recentSentQuestionOffset = (long) httpSession.getAttribute("questionOffset");
         long recentConsumedQuestionOffset = kafkaService.getRecentConsumedQuestionOffset(httpSession);
 
@@ -79,7 +81,7 @@ public class QuestionController {
         log.info("Session ID: {}", httpSession.getId());
         log.info("Calculated Offset: {}", calculatedOffset);
 
-        return ResponseEntity.ok(calculatedOffset);
+        return ResponseEntity.ok(new ApiResponse<>(true, calculatedOffset, null, null));
     }
 
     /**
@@ -90,7 +92,7 @@ public class QuestionController {
      * @return 회원이 해설을 받기까지 남은 메시지 수를 반환합니다.
      */
     @GetMapping("/api/question/explanationOffsetGap")
-    public ResponseEntity<Long> getExplanationOffset(HttpSession httpSession) {
+    public ResponseEntity<ApiResponse<Long>> getExplanationOffset(HttpSession httpSession) {
         long recentSentExplanationOffset = (long) httpSession.getAttribute("explanationOffset");
         long recentConsumedExplanationOffset = kafkaService.getRecentConsumedExplanationOffset(httpSession);
 
@@ -99,7 +101,7 @@ public class QuestionController {
         log.info("Session ID: {}", httpSession.getId());
         log.info("Calculated Offset: {}", calculatedOffset);
 
-        return ResponseEntity.ok(calculatedOffset);
+        return ResponseEntity.ok(new ApiResponse<>(true, calculatedOffset, null, null));
     }
 
     /**
@@ -109,7 +111,7 @@ public class QuestionController {
      * @return 제작될 문제 유형을 반환합니다.
      */
     @PostMapping("/api/question/createQuestionAllRandom/LLaMA")
-    public ResponseEntity<QuestionType> createDemoQuestion(HttpSession httpSession) {
+    public ResponseEntity<ApiResponse<QuestionType>> createDemoQuestion(HttpSession httpSession) {
         log.info("Session ID: {}", httpSession.getId());
 
         QuestionType questionType = QuestionType.getRandomQuestionType();
@@ -122,7 +124,7 @@ public class QuestionController {
 
         log.info("now Offset from sent message : {}", offset);
 
-        return ResponseEntity.ok(questionType);
+        return ResponseEntity.ok(new ApiResponse<>(true, questionType, null, null));
     }
 
     /**
@@ -132,7 +134,7 @@ public class QuestionController {
      * @return 제작될 문제 유형을 반환합니다.
      */
     @PostMapping("/api/question/createRandom/LLaMA")
-    public ResponseEntity<QuestionType> createDefaultQuestion(HttpSession httpSession, @RequestBody QuestionSubmitRawForm form) {
+    public ResponseEntity<ApiResponse<QuestionType>> createDefaultQuestion(HttpSession httpSession, @RequestBody QuestionSubmitRawForm form) {
 
         QuestionType questionType = QuestionType.valueOf(form.getType());
 
@@ -144,7 +146,7 @@ public class QuestionController {
 
         log.info("now Offset from sent message : {}", offset);
 
-        return ResponseEntity.ok(questionType);
+        return ResponseEntity.ok(new ApiResponse<>(true, questionType, null, null));
     }
 
     /**
@@ -155,7 +157,7 @@ public class QuestionController {
      * @return 제작될 문제 유형을 반환합니다.
      */
     @PostMapping("/api/question/create/LLaMA")
-    public ResponseEntity<QuestionType> createCustomQuestion(HttpSession httpSession, @RequestBody QuestionSubmitRawForm form) {
+    public ResponseEntity<ApiResponse<QuestionType>> createCustomQuestion(HttpSession httpSession, @RequestBody QuestionSubmitRawForm form) {
 
         QuestionType questionType = QuestionType.valueOf(form.getType());
 
@@ -167,7 +169,7 @@ public class QuestionController {
 
         log.info("now Offset from sent message : {}", offset);
 
-        return ResponseEntity.ok(questionType);
+        return ResponseEntity.ok(new ApiResponse<>(true, questionType, null, null));
     }
 
     /**
@@ -178,16 +180,13 @@ public class QuestionController {
      * @return 문제가 다 만들어졌다면 문제 정보를 반환합니다. 다 만들어지지 않았다면 NO_CONTENT를 반환합니다.
      */
     @PostMapping("/api/question/create")
-    public ResponseEntity<?> getQuestion(HttpSession httpSession, @RequestBody QuestionType questionType) {
+    public ResponseEntity<ApiResponse<QuestionResponseRawForm>> getQuestion(HttpSession httpSession, @RequestBody QuestionType questionType) {
 
         QuestionResponseRawForm response = kafkaService.receiveQuestionFromKafka(httpSession);
-        if (response == null) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("아직 문제가 만들어지지 않았습니다.");
-        }
 
         response.setQuestionType(questionType);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(new ApiResponse<>(true, response, null, null));
     }
 
     /**
@@ -200,12 +199,12 @@ public class QuestionController {
      */
     // 해설 생성
     @PostMapping("/api/question/explanation/LLaMA")
-    public ResponseEntity<String> createExplanation(HttpSession httpSession, @RequestBody QuestionResponseRawForm form) {
+    public ResponseEntity<ApiResponse<Void>> createExplanation(HttpSession httpSession, @RequestBody QuestionResponseRawForm form) {
 
         Long offset = kafkaService.makeExplanationFromKafka(form, httpSession);
         httpSession.setAttribute("explanationOffset", offset);
 
-        return ResponseEntity.ok("해설 생성 요청 전송 완료");
+        return ResponseEntity.ok(new ApiResponse<>(true, null, SuccessCode.MESSAGE_SEND_SUCCESS.getCode(), SuccessCode.MESSAGE_SEND_SUCCESS.getMessage()));
     }
 
     /**
@@ -216,12 +215,9 @@ public class QuestionController {
      * @return 해설이 다 만들어졌다면 해설 정보를 반환합니다. 다 만들어지지 않았다면 NO_CONTENT를 반환합니다.
      */
     @PostMapping("/api/question/explanation/create")
-    public ResponseEntity<?> getExplanation(HttpSession httpSession, @RequestBody QuestionResponseRawForm form) {
+    public ResponseEntity<ApiResponse<QuestionDto>> getExplanation(HttpSession httpSession, @RequestBody QuestionResponseRawForm form) {
 
         ExplanationResponseRawForm explanation = kafkaService.receiveExplanationFromKafka(httpSession);
-        if (explanation == null) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).body("아직 해설이 만들어지지 않았습니다.");
-        }
 
         log.info(explanation.toString());
 
@@ -239,6 +235,6 @@ public class QuestionController {
 
         log.info("해설 Type : {} 생성 완료.", form.getQuestionType());
 
-        return ResponseEntity.ok(question);
+        return ResponseEntity.ok(new ApiResponse<>(true, question, null, null));
     }
 }

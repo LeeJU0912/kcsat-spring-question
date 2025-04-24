@@ -1,6 +1,8 @@
 package hpclab.kcsatspringquestion.kafka.comsumer;
 
 
+import hpclab.kcsatspringquestion.exception.ApiException;
+import hpclab.kcsatspringquestion.exception.ErrorCode;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,16 +51,20 @@ public class ExplanationConsumer {
      * 이후 메시지는 해당 큐에 저장되어 다른 스레드 또는 요청 처리 로직에서 소비됩니다.</p>
      *
      * @param record Kafka에서 수신한 메시지. key는 사용자 식별자, value는 메시지 본문입니다.
-     * @throws InterruptedException 메시지를 큐에 저장하는 과정에서 인터럽트가 발생한 경우
+     * @throws ApiException 메시지를 큐에 저장하는 과정에서 큐가 가득 차 인터럽트가 발생한 경우입니다.
      */
     @KafkaListener(topics = EXPLANATION_RESPONSE_TOPIC)
-    public void listen(ConsumerRecord<String, String> record) throws InterruptedException {
-        log.info("Received Consumer Record : {}", record);
+    public void listen(ConsumerRecord<String, String> record) {
+        log.info("Received Consumer Record : {}", record.key());
 
         // 처음 접속인 경우 messageQueue를 새롭게 생성한다.
         createSessionInMessageQueue(record.key());
 
-        messageQueue.get(record.key()).put(record);
+        try {
+            messageQueue.get(record.key()).put(record);
+        } catch (InterruptedException e) {
+            throw new ApiException(ErrorCode.MESSAGE_PROCESSING_ERROR);
+        }
     }
 
     /**

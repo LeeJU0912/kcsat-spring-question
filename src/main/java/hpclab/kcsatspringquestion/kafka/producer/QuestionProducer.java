@@ -1,5 +1,7 @@
 package hpclab.kcsatspringquestion.kafka.producer;
 
+import hpclab.kcsatspringquestion.exception.ApiException;
+import hpclab.kcsatspringquestion.exception.ErrorCode;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,10 +54,9 @@ public class QuestionProducer {
      * @param message Kafka로 전송할 메시지 문자열
      * @param httpSession 현재 요청의 HttpSession 객체. 세션 ID를 Kafka 메시지의 key로 사용합니다.
      * @return 전송된 메시지의 Kafka 오프셋 값
-     * @throws ExecutionException 메시지 전송 중 예외가 발생한 경우
-     * @throws InterruptedException 메시지 전송 중 스레드가 인터럽트된 경우
+     * @throws ApiException 메시지 처리 중 내부 오류가 발생한 경우
      */
-    public Long sendMessage(String message, HttpSession httpSession) throws ExecutionException, InterruptedException {
+    public Long sendMessage(String message, HttpSession httpSession) {
 
         String uuid = httpSession.getId();
         String topic = httpSession.getAttribute("questionTopic").toString();
@@ -63,7 +64,11 @@ public class QuestionProducer {
         log.info("sending message to topic: {}, keys: {}", topic, uuid);
         CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(topic, uuid, message);
 
-        return future.get().getRecordMetadata().offset();
+        try {
+            return future.get().getRecordMetadata().offset();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new ApiException(ErrorCode.MESSAGE_PROCESSING_ERROR);
+        }
     }
 
     /**
@@ -84,7 +89,7 @@ public class QuestionProducer {
         } else if (index == 1) { // 다른 Topic 추가 가능
             return QUESTION_REQUEST_TOPIC_1;
         } else {
-            throw new IllegalArgumentException("Invalid question topic");
+            throw new ApiException(ErrorCode.TOPIC_NOT_FOUND);
         }
     }
 }

@@ -1,5 +1,7 @@
 package hpclab.kcsatspringquestion.kafka;
 
+import hpclab.kcsatspringquestion.exception.ApiException;
+import hpclab.kcsatspringquestion.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -51,16 +53,14 @@ public class KafkaOffsetChecker {
             OffsetAndMetadata offsetAndMetadata = offsets.get(topicPartition);
 
             if (offsetAndMetadata != null) {
-                log.info("Committed offset for {}-{}: {}",
-                        topic, partition, offsetAndMetadata.offset());
+                log.info("Committed offset for {}-{}: {}", topic, partition, offsetAndMetadata.offset());
                 return offsetAndMetadata.offset();
             } else {
-                log.info("No committed offset found for {}-{}",
-                        topic, partition);
+                log.info("No committed offset found for {}-{}", topic, partition);
                 return -1;
             }
         } catch (ExecutionException | InterruptedException e) {
-            throw new RuntimeException("Error while fetching offsets", e);
+            throw new ApiException(ErrorCode.MESSAGE_PROCESSING_ERROR);
         }
     }
 }

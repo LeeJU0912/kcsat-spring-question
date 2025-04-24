@@ -2,6 +2,8 @@ package hpclab.kcsatspringquestion.kafka;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hpclab.kcsatspringquestion.exception.ApiException;
+import hpclab.kcsatspringquestion.exception.ErrorCode;
 import hpclab.kcsatspringquestion.kafka.comsumer.ExplanationConsumer;
 import hpclab.kcsatspringquestion.kafka.comsumer.QuestionConsumer;
 import hpclab.kcsatspringquestion.kafka.producer.ExplanationProducer;
@@ -86,9 +88,7 @@ public class KafkaService {
         try {
             return questionProducer.sendMessage(objectMapper.writeValueAsString(form), httpSession);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("보낼 메시지를 JSON 변환에 실패하였습니다.");
-        } catch (ExecutionException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.MESSAGE_PARSING_ERROR);
         }
     }
 
@@ -108,15 +108,13 @@ public class KafkaService {
         // 메시지가 들어올 때까지 대기
         ConsumerRecord<String, String> message = questionConsumer.getMessageFromQueue(httpSession);
         if (message == null) {
-            return null;
+            throw new ApiException(ErrorCode.QUESTION_NOT_READY);
         }
 
-        String messageValue = message.value();
-
         try {
-            return objectMapper.readValue(messageValue, QuestionResponseRawForm.class);
+            return objectMapper.readValue(message.value(), QuestionResponseRawForm.class);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("받은 메시지를 JSON 변환에 실패하였습니다.");
+            throw new ApiException(ErrorCode.MESSAGE_PARSING_ERROR);
         }
     }
 
@@ -152,9 +150,7 @@ public class KafkaService {
         try {
             return explanationProducer.sendMessage(objectMapper.writeValueAsString(data), httpSession);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("보낼 메시지를 JSON 변환에 실패하였습니다.");
-        } catch (ExecutionException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.MESSAGE_PARSING_ERROR);
         }
     }
 
@@ -163,7 +159,7 @@ public class KafkaService {
      * Kafka에서 문제 해설(Explanation) 응답 메시지를 수신하고, 이를 파싱하여 반환합니다.
      *
      * <p>사용자의 HTTP 세션을 기반으로 Kafka로부터 수신 대기 중인 메시지를 확인합니다.
-     * 큐에 메시지가 존재하지 않으면 {@code null}을 반환하며,
+     * 큐에 메시지가 존재하지 않으면 ApiException을 반환하며,
      * 존재할 경우 해당 메시지를 {@link ExplanationResponseRawForm} 객체로 역직렬화하여 반환합니다.</p>
      *
      * @param httpSession 현재 사용자 HTTP 세션 객체 (UUID 기반으로 메시지를 조회)
@@ -175,15 +171,13 @@ public class KafkaService {
         // 메시지가 들어올 때까지 대기
         ConsumerRecord<String, String> message = explanationConsumer.checkQueueSizeFromQueue(httpSession);
         if (message == null) {
-            return null;
+            throw new ApiException(ErrorCode.EXPLANATION_NOT_READY);
         }
 
-        String messageValue = message.value();
-
         try {
-            return objectMapper.readValue(messageValue, ExplanationResponseRawForm.class);
+            return objectMapper.readValue(message.value(), ExplanationResponseRawForm.class);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new ApiException(ErrorCode.MESSAGE_PARSING_ERROR);
         }
     }
 
