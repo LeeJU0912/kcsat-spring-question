@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -15,11 +16,18 @@ import javax.crypto.SecretKey;
 @Component
 public class JWTUtil {
 
-    private static final Long expiredMs = 3600000L;
-
     @Value("${jwt.secret}")
     private String secretKey;
-    private final SecretKey key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
+
+    private SecretKey key;
+
+    @PostConstruct
+    private void init() {
+        if (secretKey == null || secretKey.isBlank()) {
+            throw new IllegalArgumentException("JWT secret must not be null or blank");
+        }
+        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
+    }
 
     public static final String USER_EMAIL = "userEmail";
     public static final String USER_NAME = "userName";
