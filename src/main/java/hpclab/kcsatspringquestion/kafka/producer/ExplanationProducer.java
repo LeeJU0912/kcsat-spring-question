@@ -2,16 +2,17 @@ package hpclab.kcsatspringquestion.kafka.producer;
 
 import hpclab.kcsatspringquestion.exception.ApiException;
 import hpclab.kcsatspringquestion.exception.ErrorCode;
-import jakarta.servlet.http.HttpSession;
+import hpclab.kcsatspringquestion.redis.RedisKeyUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 해설 생성 요청 Kafka producer 클래스입니다.
@@ -22,12 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ExplanationProducer {
 
     /**
-     * 모든 클라이언트가 순서를 공유하는 것으로 동시성 보장을 신경써야 합니다.
-     * AtomicInteger로 반드시 순차적으로 값 수정을 할 수 있도록 하였습니다.
-     */
-    private static final AtomicInteger produceIdx = new AtomicInteger(0);
-
-    /**
      * GPU 서버 갯수를 나타냅니다.
      */
     private static final Integer EXPLANATION_SERVER_SIZE = 1;
@@ -35,7 +30,7 @@ public class ExplanationProducer {
     /**
      * Kafka Topic을 나타냅니다. (이후 추가 가능)
      */
-    private static final String EXPLANATION_REQUEST_TOPIC_1 = "ExplanationRequest1";
+    private static final String EXPLANATION_REQUEST_TOPIC = "ExplanationRequest";
 
     /**
      * Kafka 메시지를 비동기 전송하기 위한 KafkaTemplate입니다.
@@ -44,25 +39,35 @@ public class ExplanationProducer {
     private final KafkaTemplate<String, String> kafkaTemplate;
 
     /**
+     * Kafka 메시지를 저장하기 위한 RedisTemplate입니다.
+     * 객체 데이터를 String으로 직렬화하여 저장합니다.
+     */
+    private final RedisTemplate<String, String> redisTemplate;
+
+    /**
      * Kafka 메시지를 지정된 토픽으로 전송하는 메서드입니다.
      *
-     * <p>세션의 UUID를 키로 사용하여 Kafka 메시지를 발행하며,
+     * <p>JWT UserEmail을 키로 사용하여 Kafka 메시지를 발행하며,
      * 메시지를 처리할 토픽은 라운드로빈 방식으로 결정됩니다.</p>
      *
      * 이후 메시지를 보낸 Topic은 Session에 저장한 후, 대기열 확인을 위해 Offset 확인 용도로 사용됩니다.
      *
      * @param message Kafka로 전송할 메시지 문자열
-     * @param httpSession 현재 요청의 HttpSession 객체. 세션 ID를 Kafka 메시지의 key로 사용합니다.
+     * @param email 현재 요청의 HttpSession 객체. JWT UserEmail 데이터를 Kafka 메시지의 key로 사용합니다.
+     * @param topic 현재 Kafka Topic 값. 해설 생성마다 Topic값이 변경됩니다.
      * @return 전송된 메시지의 Kafka 오프셋 값
      * @throws ApiException 메시지 처리 중 내부 오류가 발생한 경우
      */
-    public Long sendMessage(String message, HttpSession httpSession) {
+    public Long sendMessage(String message, String email, String topic) {
 
-        String uuid = httpSession.getId();
-        String topic = httpSession.getAttribute("explanationTopic").toString();
+        Boolean locked = redisTemplate.opsForValue().setIfAbsent(RedisKeyUtil.explanationRequestLock(email), "1", Duration.ofMinutes(1));
 
-        log.info("sending message to topic: {}, keys: {}", topic, uuid);
-        CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(topic, uuid, message);
+        if (Boolean.FALSE.equals(locked)) {
+            throw new ApiException(ErrorCode.DUPLICATE_REQUEST);
+        }
+
+        log.info("sending message to topic: {}, keys: {}", topic, email);
+        CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(topic, email, message);
 
         try {
             return future.get().getRecordMetadata().offset();
@@ -76,20 +81,21 @@ public class ExplanationProducer {
      * 해설 생성 Kafka Topic을 불러오는 메서드입니다.
      * 다중 GPU 서버를 사용하는 경우, Topic을 순차적으로 돌아가며 메시지를 Produce 합니다.
      *
-     * 불러온 Topic은 세션 정보에 보관합니다.
+     * Topic을 불러오면, Redis에 새롭게 갱신하여 보관합니다.
      *
      * @return Topic에 해당하는 문자열을 반환합니다.
      */
     public String getExplanationTopic() {
-        // Round-Robin
-        int index = produceIdx.updateAndGet(i -> (i + 1) % EXPLANATION_SERVER_SIZE);
 
-        if (index == 0) {
-            return EXPLANATION_REQUEST_TOPIC_1;
-        } else if (index == 1) { // 다른 Topic 추가 가능
-            return EXPLANATION_REQUEST_TOPIC_1;
-        } else {
-            throw new ApiException(ErrorCode.TOPIC_NOT_FOUND);
+        String topic = redisTemplate.opsForValue().get(RedisKeyUtil.explanationTopic());
+        if (topic == null) {
+            throw new ApiException(ErrorCode.MESSAGE_PROCESSING_ERROR);
         }
+
+        //Round-Robin
+        int nextValue = ((Integer.parseInt(topic) + 1) % EXPLANATION_SERVER_SIZE) + 1;
+        redisTemplate.opsForValue().set(RedisKeyUtil.explanationTopic(), String.valueOf(nextValue));
+
+        return EXPLANATION_REQUEST_TOPIC + topic;
     }
 }
