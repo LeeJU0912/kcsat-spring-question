@@ -21,13 +21,13 @@ public class Choice {
      */
     @Id
     @GeneratedValue
-    @Column(name = "choice_id")
+    @Column(name = "id")
     private Long id;
 
     /**
      * 보기 항목
      */
-    @Column(nullable = false)
+    @Column(name = "choice", nullable = false)
     private String choice;
 
     public Choice(String choice) {

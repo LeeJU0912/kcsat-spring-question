@@ -20,25 +20,25 @@ public class QuestionExplanation {
 
     @Id
     @GeneratedValue
-    @Column(name = "question_explanation_id")
+    @Column(name = "id")
     private Long id;
 
     /**
      * 문제 유형
      */
-    @Column(name = "question_explanation_email", nullable = false)
+    @Column(name = "question_type", nullable = false)
     private QuestionType questionType;
 
     /**
      * 문제 제목
      */
-    @Column(name = "question_explanation_title", nullable = false)
+    @Column(name = "title", nullable = false)
     private String title;
 
     /**
      * 문제 본문
      */
-    @Column(name = "question_explanation_main_text", nullable = false)
+    @Column(name = "main_text", nullable = false)
     private String mainText;
 
     /**
@@ -52,25 +52,25 @@ public class QuestionExplanation {
     /**
      * 문제 번역
      */
-    @Column(name = "question_explanation_translation", nullable = false)
+    @Column(name = "translation", nullable = false)
     private String translation;
 
     /**
      * 문제 해설
      */
-    @Column(name = "question_explanation_explanation", nullable = false)
+    @Column(name = "explanation", nullable = false)
     private String explanation;
 
     /**
      * 문제 정답
      */
-    @Column(name = "question_explanation_answer", nullable = false)
+    @Column(name = "answer", nullable = false)
     private String answer;
 
     /**
      * 문제 제작자
      */
-    @Column(name = "question_explanation_email", nullable = false)
+    @Column(name = "email", nullable = false)
     private String email;
 
     public QuestionExplanation(String email, QuestionDto question) {
